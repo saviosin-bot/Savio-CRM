@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企業級公司主體 CRM 系統 - B2B Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        [v-cloak] { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .drawer-enter-active, .drawer-leave-active { transition: transform 0.3s ease-in-out, opacity 0.3s ease; }
+        .drawer-enter-from, .drawer-leave-to { transform: translateX(100%); opacity: 0; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .pulse-slow { animation: pulse-ring 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen selection:bg-indigo-500 selection:text-white">
+    <div id="app" v-cloak class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-xl sticky top-0 z-30 border-b border-indigo-800/40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center space-x-3 cursor-pointer group" @click="currentTab = 'companies'">
+                    <div class="p-2.5 bg-indigo-600 rounded-xl shadow-inner border border-indigo-400/30 flex items-center justify-center group-hover:bg-indigo-500 transition">
+                        <i class="fa-solid fa-building-user text-xl text-indigo-100"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="font-black text-lg sm:text-xl tracking-tight text-white">B2B Account CRM</h1>
+                            <span class="bg-gradient-to-r from-emerald-500 to-teal-500 text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full text-white shadow-xs">COMPANY-CENTRIC v3.0</span>
+                        </div>
+                        <p class="text-[11px] text-indigo-200 hidden sm:block">以公司為核心的企業客戶關係與管道管理系統</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex items-center space-x-2 sm:space-x-3">
+                    <button @click="openBackupModal" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-slate-700 shadow-sm text-slate-200">
+                        <i class="fa-solid fa-database text-indigo-400"></i>
+                        <span class="hidden md:inline">備份 / 匯出匯入</span>
+                    </button>
+                    <button @click="openCompanyModal()" class="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md active:scale-95">
+                        <i class="fa-solid fa-building-circle-check text-xs"></i>
+                        <span>新增客戶公司</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-6">
+            
+            <!-- Dashboard Overview Stats Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                <div @click="showAllCompaniesTab" class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-indigo-400 hover:shadow-md transition group">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-indigo-600 transition">合作客戶公司</p>
+                        <p class="text-2xl font-black text-slate-800 mt-1">{{ companies.length }} <span class="text-xs font-normal text-slate-400">間</span></p>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                        <i class="fa-solid fa-building text-lg"></i>
+                    </div>
+                </div>
+
+                <div @click="currentTab = 'pipeline'" class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-emerald-400 hover:shadow-md transition group">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-emerald-600 transition">管道估計總金額</p>
+                        <p class="text-2xl font-black text-emerald-600 mt-1">${{ formatNumber(totalBudget) }}</p>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                        <i class="fa-solid fa-sack-dollar text-lg"></i>
+                    </div>
+                </div>
+
+                <div @click="currentTab = 'contacts'" class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-purple-400 hover:shadow-md transition group">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-purple-600 transition">總登記聯絡人</p>
+                        <p class="text-2xl font-black text-slate-800 mt-1">{{ contacts.length }} <span class="text-xs font-normal text-slate-400">位</span></p>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                        <i class="fa-solid fa-users text-lg"></i>
+                    </div>
+                </div>
+
+                <div @click="currentTab = 'followups'" class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between cursor-pointer hover:border-amber-400 hover:shadow-md transition group">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-amber-600 transition">公司待跟進</p>
+                        <p class="text-2xl font-black text-amber-600 mt-1">{{ pendingFollowUpsCount }} <span class="text-xs font-normal text-slate-400">項</span></p>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                        <i class="fa-solid fa-bell text-lg"></i>
+                    </div>
+                </div>
+
+                <div @click="quickRenewalFilter('expiring30')" class="bg-gradient-to-br from-rose-50 to-amber-50 p-4 rounded-2xl border border-rose-200 shadow-xs flex items-center justify-between cursor-pointer hover:border-rose-400 hover:shadow-md transition group">
+                    <div>
+                        <p class="text-[11px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-rotate text-rose-500 animate-spin-slow"></i> 到期續約提醒
+                        </p>
+                        <p class="text-2xl font-black text-rose-600 mt-1">{{ expiringCount30 }} <span class="text-xs font-normal text-slate-500">間公司</span></p>
+                    </div>
+                    <div class="w-11 h-11 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition shadow-xs">
+                        <i class="fa-solid fa-file-contract text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation Header -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 pt-2 rounded-t-2xl border-x shadow-2xs">
+                <div class="flex overflow-x-auto custom-scrollbar gap-1">
+                    <button @click="currentTab = 'companies'" :class="{'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/60': currentTab === 'companies', 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50': currentTab !== 'companies'}" class="py-3 px-4 border-b-2 font-semibold text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap rounded-t-xl">
+                        <i class="fa-solid fa-building"></i> 公司總覽目錄
+                        <span class="px-2 py-0.5 text-[10px] bg-indigo-100 text-indigo-700 rounded-full font-bold">{{ filteredCompanies.length }}</span>
+                    </button>
+                    <button @click="currentTab = 'pipeline'" :class="{'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/60': currentTab === 'pipeline', 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50': currentTab !== 'pipeline'}" class="py-3 px-4 border-b-2 font-semibold text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap rounded-t-xl">
+                        <i class="fa-solid fa-chart-kanban"></i> 公司銷售管道 (Kanban)
+                    </button>
+                    <button @click="currentTab = 'contacts'" :class="{'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/60': currentTab === 'contacts', 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50': currentTab !== 'contacts'}" class="py-3 px-4 border-b-2 font-semibold text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap rounded-t-xl">
+                        <i class="fa-solid fa-address-book"></i> 所有聯絡人名冊
+                        <span class="px-2 py-0.5 text-[10px] bg-slate-200 text-slate-700 rounded-full font-bold">{{ contacts.length }}</span>
+                    </button>
+                    <button @click="currentTab = 'followups'" :class="{'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/60': currentTab === 'followups', 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50': currentTab !== 'followups'}" class="py-3 px-4 border-b-2 font-semibold text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap rounded-t-xl">
+                        <i class="fa-solid fa-calendar-check"></i> 公司跟進日程
+                    </button>
+                    <button @click="currentTab = 'analytics'" :class="{'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/60': currentTab === 'analytics', 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50': currentTab !== 'analytics'}" class="py-3 px-4 border-b-2 font-semibold text-xs sm:text-sm transition flex items-center gap-2 whitespace-nowrap rounded-t-xl">
+                        <i class="fa-solid fa-chart-pie"></i> 數據分析儀表板
+                    </button>
+                </div>
+                
+                <div class="pb-2 flex items-center gap-2 px-2">
+                    <span class="text-xs text-slate-400 hidden sm:inline-flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-emerald-500"></i> B2B Account Mode</span>
+                </div>
+            </div>
+
+            <!-- TAB 1: COMPANIES DIRECTORY (PRIMARY MAIN TAB) -->
+            <div v-if="currentTab === 'companies'" class="space-y-4">
+                <!-- Advanced Filter Toolbar -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3 lg:space-y-0 lg:flex lg:items-center lg:justify-between lg:gap-3">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input v-model="searchQuery" type="text" placeholder="搜尋公司名稱、行業、主要聯絡人、電話、電郵、專案名稱或標籤..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50">
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Solution Filter -->
+                        <div class="flex items-center gap-1">
+                            <select v-model="filterSolution" class="px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="">所有解決方案</option>
+                                <option v-for="sol in solutionOptions" :key="sol" :value="sol">{{ sol }}</option>
+                            </select>
+                            <button @click="showSolutionModal = true" title="管理解決方案選項" class="p-2 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-xl text-xs border border-slate-200 transition">
+                                <i class="fa-solid fa-gear"></i>
+                            </button>
+                        </div>
+
+                        <!-- Pipeline Stage Filter -->
+                        <select v-model="filterStage" class="px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">所有管道階段</option>
+                            <option v-for="stg in stageOptions" :key="stg.value" :value="stg.value">{{ stg.label }}</option>
+                        </select>
+
+                        <!-- Project Renewal Filter -->
+                        <select v-model="filterRenewal" class="px-3 py-2 border border-amber-300 bg-amber-50/50 text-amber-900 font-medium rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="">🔄 續約狀態 (全部)</option>
+                            <option value="expiring30">🚨 30天內到期續約</option>
+                            <option value="expiring60">⚠️ 60天內到期續約</option>
+                            <option value="expired">❌ 已到期未續約</option>
+                            <option value="active">✅ 合約履行中</option>
+                        </select>
+
+                        <!-- Sort By -->
+                        <select v-model="sortBy" class="px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="updated">最後更新時間</option>
+                            <option value="endDateSoon">⏳ 合約到期日 (最近到期)</option>
+                            <option value="followUpDate">📌 跟進提醒日期</option>
+                            <option value="budgetHigh">預算金額 (高至低)</option>
+                            <option value="budgetLow">預算金額 (低至高)</option>
+                        </select>
+
+                        <!-- Reset Filters -->
+                        <button v-if="searchQuery || filterSolution || filterStage || filterRenewal" @click="clearFilters" class="px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-medium transition flex items-center gap-1 border border-rose-200">
+                            <i class="fa-solid fa-xmark"></i> 清除篩選
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Companies Data Table -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
+                                    <th class="p-4">公司名稱 / 行業</th>
+                                    <th class="p-4">主要聯絡人 / 團隊</th>
+                                    <th class="p-4">管道階段與標籤</th>
+                                    <th class="p-4">專案預算與續約狀態</th>
+                                    <th class="p-4">跟進日程與部署</th>
+                                    <th class="p-4 text-right">功能操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="company in filteredCompanies" :key="company.id" class="hover:bg-indigo-50/30 transition group">
+                                    <td class="p-4">
+                                        <div class="font-bold text-slate-900 text-base flex items-center gap-1.5 cursor-pointer hover:text-indigo-600 transition" @click="openCompanyDrawer(company)">
+                                            <i class="fa-solid fa-building text-indigo-500 text-sm"></i>
+                                            <span>{{ company.name }}</span>
+                                            <i class="fa-solid fa-chevron-right text-[10px] text-slate-300 group-hover:text-indigo-500 ml-1"></i>
+                                        </div>
+                                        <div class="text-xs text-slate-500 font-medium mt-1 flex items-center gap-2">
+                                            <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-semibold border border-slate-200">{{ company.industry || '未定義行業' }}</span>
+                                            <span v-if="company.address" class="truncate max-w-xs text-slate-400 text-[11px]"><i class="fa-solid fa-location-dot mr-1"></i>{{ company.address }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div v-if="getPrimaryContact(company.id)" class="space-y-1">
+                                            <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                                <i class="fa-solid fa-user-check text-emerald-500 text-xs"></i>
+                                                <span>{{ getPrimaryContact(company.id).name }}</span>
+                                                <span v-if="getPrimaryContact(company.id).jobTitle" class="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.2 rounded font-medium border border-indigo-100">
+                                                    {{ getPrimaryContact(company.id).jobTitle }}
+                                                </span>
+                                            </div>
+                                            <div class="text-xs text-slate-500 flex items-center gap-2">
+                                                <span v-if="getPrimaryContact(company.id).phone"><i class="fa-solid fa-phone text-[10px] mr-1 text-slate-400"></i>{{ getPrimaryContact(company.id).phone }}</span>
+                                                <span v-if="getPrimaryContact(company.id).email"><i class="fa-solid fa-envelope text-[10px] mr-1 text-slate-400"></i>{{ getPrimaryContact(company.id).email }}</span>
+                                            </div>
+                                        </div>
+                                        <div v-else class="text-xs text-slate-400 italic flex items-center gap-1">
+                                            <span>無主聯絡人</span>
+                                        </div>
+                                        <div class="mt-1 text-[10px] text-indigo-600 font-bold">
+                                            共 {{ getCompanyContacts(company.id).length }} 位聯絡人
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="space-y-1">
+                                            <div>
+                                                <span :class="getStageBadge(company.stage).badgeClass" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold inline-flex items-center gap-1 border">
+                                                    <i :class="getStageBadge(company.stage).icon"></i>
+                                                    {{ getStageBadge(company.stage).label }}
+                                                </span>
+                                            </div>
+                                            <div v-if="company.tags && company.tags.length" class="flex flex-wrap gap-1">
+                                                <span v-for="tag in company.tags" :key="tag" class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-medium border border-slate-200">
+                                                    #{{ tag }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-bold text-slate-800">HK$ {{ formatNumber(company.budget) }}</div>
+                                        <div v-if="company.signedAmount" class="text-xs text-emerald-600 font-semibold mt-0.5 flex items-center gap-1">
+                                            <i class="fa-solid fa-circle-check text-[10px]"></i> 已簽: HK$ {{ formatNumber(company.signedAmount) }}
+                                        </div>
+                                        <div v-if="company.projectName" class="text-[11px] text-slate-700 font-semibold mt-1 flex items-center gap-1">
+                                            <i class="fa-solid fa-diagram-project text-indigo-500 text-[10px]"></i>
+                                            <span>{{ company.projectName }}</span>
+                                        </div>
+                                        
+                                        <!-- Renewal Alert Badge -->
+                                        <div v-if="company.endDate" class="mt-1">
+                                            <span :class="getRenewalBadgeInfo(company.endDate).badgeClass" class="px-2 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center gap-1 border">
+                                                <i :class="getRenewalBadgeInfo(company.endDate).icon"></i>
+                                                {{ getRenewalBadgeInfo(company.endDate).label }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 space-y-1">
+                                        <div class="text-xs flex items-center gap-1" :class="isFollowUpUrgent(company.followUpDate) ? 'text-amber-600 font-bold' : 'text-slate-600'">
+                                            <i class="fa-solid fa-clock text-xs"></i>
+                                            <span>跟進: {{ company.followUpDate || '未設定' }}</span>
+                                        </div>
+                                        <div class="text-[11px] text-slate-400 flex items-center gap-1">
+                                            <span>部署: {{ company.deployDate || '未定' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-right space-x-1 whitespace-nowrap">
+                                        <button @click="openCompanyDrawer(company)" title="查看公司詳情" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                        <button @click="openLogModal(company)" title="新增跟進紀錄" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition">
+                                            <i class="fa-solid fa-list-check"></i>
+                                        </button>
+                                        <button @click="openContactModalForCompany(company.id)" title="新增聯絡人" class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </button>
+                                        <button @click="openCompanyModal(company)" title="編輯公司資料" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button @click="confirmDeleteCompany(company)" title="刪除公司" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredCompanies.length === 0">
+                                    <td colspan="6" class="p-12 text-center text-slate-400">
+                                        <i class="fa-solid fa-building-circle-xmark text-4xl mb-3 block text-slate-300"></i>
+                                        沒有找到符合條件的公司資料
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PIPELINE (Company Kanban View) -->
+            <div v-if="currentTab === 'pipeline'" class="space-y-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-base">公司銷售管道看板 (Company Pipeline)</h2>
+                        <p class="text-xs text-slate-500">以公司為主體進行銷售階段掌控，掌握客戶商機進度與合約狀態。</p>
+                    </div>
+                    <div class="text-xs text-slate-600 font-semibold bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+                        管道估計總金額: <span class="text-indigo-600 font-bold">HK$ {{ formatNumber(totalBudget) }}</span>
+                    </div>
+                </div>
+
+                <!-- Kanban Columns -->
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto pb-4">
+                    <div v-for="stg in stageOptions" :key="stg.value" class="bg-slate-200/50 p-3 rounded-2xl border border-slate-200/80 flex flex-col min-h-[520px]">
+                        <!-- Column Header -->
+                        <div class="flex items-center justify-between pb-3 border-b border-slate-300/60 mb-3">
+                            <div class="flex items-center gap-1.5">
+                                <i :class="stg.icon" class="text-xs text-slate-600"></i>
+                                <span class="font-bold text-xs text-slate-800">{{ stg.label }}</span>
+                            </div>
+                            <span class="px-2 py-0.5 bg-white text-slate-700 rounded-full text-[10px] font-bold border border-slate-200 shadow-2xs">
+                                {{ getCompaniesByStage(stg.value).length }}
+                            </span>
+                        </div>
+
+                        <!-- Column Stage Value -->
+                        <div class="text-[11px] text-slate-500 mb-3 font-medium bg-white/80 px-2.5 py-1.5 rounded-xl border border-slate-200/60 flex justify-between shadow-2xs">
+                            <span>預計小計:</span>
+                            <span class="font-bold text-slate-800">HK$ {{ formatNumber(getStageBudget(stg.value)) }}</span>
+                        </div>
+
+                        <!-- Kanban Cards Container -->
+                        <div class="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
+                            <div v-for="comp in getCompaniesByStage(stg.value)" :key="comp.id" class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs hover:shadow-md transition cursor-pointer group hover:border-indigo-400 relative" @click="openCompanyDrawer(comp)">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="font-bold text-xs sm:text-sm text-slate-900 group-hover:text-indigo-600 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-building text-indigo-500 text-xs"></i>
+                                        {{ comp.name }}
+                                    </h4>
+                                    <span class="text-xs font-extrabold text-indigo-600">HK$ {{ formatNumber(comp.budget) }}</span>
+                                </div>
+                                
+                                <!-- Primary Contact Badge -->
+                                <div v-if="getPrimaryContact(comp.id)" class="text-[11px] text-slate-600 font-medium mb-1.5 flex items-center gap-1">
+                                    <i class="fa-solid fa-user-tie text-[10px] text-slate-400"></i>
+                                    <span>{{ getPrimaryContact(comp.id).name }}</span>
+                                    <span v-if="getPrimaryContact(comp.id).jobTitle" class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded">
+                                        {{ getPrimaryContact(comp.id).jobTitle }}
+                                    </span>
+                                </div>
+
+                                <div v-if="comp.projectName" class="text-[11px] bg-indigo-50/50 p-2 rounded-lg border border-indigo-100 text-indigo-900 mb-2 truncate">
+                                    📌 {{ comp.projectName }}
+                                </div>
+
+                                <!-- Stage Changer Quick Controls -->
+                                <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                                    <div class="flex items-center gap-1" @click.stop>
+                                        <span class="text-slate-400">階段:</span>
+                                        <select :value="comp.stage" @change="quickMoveCompanyStage(comp, $event.target.value)" class="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-semibold focus:outline-none">
+                                            <option v-for="s in stageOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
+                                        </select>
+                                    </div>
+                                    <span :class="isFollowUpUrgent(comp.followUpDate) ? 'text-amber-600 font-bold' : 'text-slate-400'">
+                                        <i class="fa-solid fa-clock mr-0.5"></i>{{ comp.followUpDate || '無跟進' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div v-if="getCompaniesByStage(stg.value).length === 0" class="text-center py-10 text-xs text-slate-400 border-2 border-dashed border-slate-300/60 rounded-xl">
+                                暫無公司商機
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ALL CONTACTS LIST (SUB-ENTITY) -->
+            <div v-if="currentTab === 'contacts'" class="space-y-4">
+                <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-base">所有公司聯絡人名冊</h2>
+                        <p class="text-xs text-slate-500">檢視與管理所有歸屬於不同公司之下的個人聯絡資訊。</p>
+                    </div>
+                    <button @click="openContactModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95">
+                        <i class="fa-solid fa-user-plus"></i> 新增聯絡人
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
+                                    <th class="p-4">聯絡人姓名與職位</th>
+                                    <th class="p-4">所屬公司</th>
+                                    <th class="p-4">主要聯絡人標籤</th>
+                                    <th class="p-4">通訊電話 / 電郵</th>
+                                    <th class="p-4">快速聯絡導向</th>
+                                    <th class="p-4 text-right">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="contact in contacts" :key="contact.id" class="hover:bg-indigo-50/30 transition">
+                                    <td class="p-4">
+                                        <div class="font-bold text-slate-900 flex items-center gap-2">
+                                            <span>{{ contact.name }}</span>
+                                            <span v-if="contact.jobTitle" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-semibold rounded-md border border-indigo-100">
+                                                <i class="fa-solid fa-user-tie text-[9px]"></i> {{ contact.jobTitle }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="font-bold text-slate-800 cursor-pointer hover:text-indigo-600 transition flex items-center gap-1" @click="openCompanyDrawerById(contact.companyId)">
+                                            <i class="fa-solid fa-building text-slate-400 text-xs"></i>
+                                            <span>{{ getCompanyName(contact.companyId) }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <span v-if="contact.isPrimary" class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-md text-[10px] inline-flex items-center gap-1 border border-emerald-200">
+                                            <i class="fa-solid fa-star text-amber-500 text-[9px]"></i> 主要聯絡窗口
+                                        </span>
+                                        <span v-else class="text-slate-400 text-xs">一般成員</span>
+                                    </td>
+                                    <td class="p-4 space-y-1">
+                                        <div v-if="contact.phone" class="text-xs text-slate-600 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-phone text-slate-400 w-3 text-[11px]"></i> {{ contact.phone }}
+                                        </div>
+                                        <div v-if="contact.email" class="text-xs text-slate-600 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-envelope text-slate-400 w-3 text-[11px]"></i> {{ contact.email }}
+                                        </div>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-1">
+                                            <a v-if="contact.phone" :href="'tel:' + contact.phone" title="電話通話" class="p-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs border border-emerald-200">
+                                                <i class="fa-solid fa-phone"></i>
+                                            </a>
+                                            <a v-if="contact.phone" :href="'https://wa.me/' + cleanPhoneForWA(contact.phone)" target="_blank" title="WhatsApp 訊息" class="p-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg text-xs border border-green-200">
+                                                <i class="fa-brands fa-whatsapp"></i>
+                                            </a>
+                                            <a v-if="contact.email" :href="'mailto:' + contact.email" title="發送電郵" class="p-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs border border-blue-200">
+                                                <i class="fa-solid fa-envelope"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 text-right space-x-1 whitespace-nowrap">
+                                        <button @click="openContactModal(contact)" title="編輯聯絡人" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button @click="confirmDeleteContact(contact)" title="刪除聯絡人" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="contacts.length === 0">
+                                    <td colspan="6" class="p-12 text-center text-slate-400">
+                                        <i class="fa-solid fa-address-book text-4xl mb-3 block text-slate-300"></i>
+                                        目前沒有登記任何聯絡人
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: FOLLOW-UPS SCHEDULE (COMPANY-CENTRIC) -->
+            <div v-if="currentTab === 'followups'" class="space-y-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-base">公司跟進日程與提醒事項</h2>
+                        <p class="text-xs text-slate-500">按預定跟進日期排序，規劃每日聯繫任務與行動方針。</p>
+                    </div>
+                    <div class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-xl font-bold">
+                        今日需要處理: {{ pendingFollowUpsCount }} 項
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div v-for="company in scheduledCompanies" :key="company.id" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-indigo-300 transition">
+                        <div class="flex items-start gap-3.5">
+                            <div class="p-3.5 rounded-2xl flex-shrink-0" :class="isFollowUpUrgent(company.followUpDate) ? 'bg-amber-100 text-amber-800 animate-pulse' : 'bg-slate-100 text-slate-600'">
+                                <i class="fa-solid fa-calendar-day text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-900 cursor-pointer hover:text-indigo-600 text-base" @click="openCompanyDrawer(company)">
+                                        <i class="fa-solid fa-building text-indigo-500 mr-1"></i>{{ company.name }}
+                                    </h3>
+                                    <span v-if="getPrimaryContact(company.id)" class="px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold rounded-md border border-indigo-100">
+                                        窗口: {{ getPrimaryContact(company.id).name }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <span class="font-medium text-slate-700">意向方案：</span>{{ company.solution || '未定' }} | 
+                                    <span class="font-medium text-slate-700">預算：</span>HK$ {{ formatNumber(company.budget) }}
+                                </p>
+                                <p v-if="company.remark" class="text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-slate-600 mt-2 leading-relaxed">
+                                    <i class="fa-solid fa-quote-left text-slate-300 mr-1.5"></i>{{ company.remark }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between md:justify-end gap-3 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100">
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 uppercase font-bold block">預定跟進日</span>
+                                <span class="text-sm font-black" :class="isFollowUpUrgent(company.followUpDate) ? 'text-amber-600' : 'text-slate-800'">
+                                    {{ company.followUpDate }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button @click="quickPostponeCompanyFollowUp(company)" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition" title="延後 3 天">
+                                    延後 +3天
+                                </button>
+                                <button @click="openLogModal(company)" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition flex items-center gap-1 shadow-xs">
+                                    <i class="fa-solid fa-plus"></i> 跟進紀錄
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="scheduledCompanies.length === 0" class="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400">
+                        <i class="fa-solid fa-calendar-check text-4xl mb-3 block text-emerald-500"></i>
+                        目前沒有安排任何跟進日期的公司
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: VISUAL ANALYTICS & DASHBOARD -->
+            <div v-if="currentTab === 'analytics'" class="space-y-6">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+                    <h2 class="font-bold text-slate-800 text-base">數據分析與銷售視覺化儀表板</h2>
+                    <p class="text-xs text-slate-500">即時計算公司商機數據分佈，評估企業客戶管道健康度與成效。</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Stage Breakdown Chart -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-indigo-600"></i> 各階段公司金額分佈概況
+                        </h3>
+                        <div class="space-y-3">
+                            <div v-for="stg in stageOptions" :key="stg.value" class="space-y-1">
+                                <div class="flex justify-between text-xs font-semibold">
+                                    <span class="text-slate-700">{{ stg.label }}</span>
+                                    <span class="text-slate-900">HK$ {{ formatNumber(getStageBudget(stg.value)) }} ({{ getStagePercentage(stg.value) }}%)</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                    <div class="h-full bg-indigo-600 transition-all duration-500" :style="{ width: getStagePercentage(stg.value) + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Companies Financial Summary -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-amber-500"></i> 預算最高合作公司 TOP 5
+                        </h3>
+                        <div class="space-y-2.5">
+                            <div v-for="(comp, index) in topCompanies" :key="comp.id" class="p-3 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 font-extrabold text-xs flex items-center justify-center">
+                                        {{ index + 1 }}
+                                    </span>
+                                    <div>
+                                        <div class="font-bold text-xs text-slate-800">{{ comp.name }}</div>
+                                        <div class="text-[10px] text-slate-400">{{ comp.industry || '一般行業' }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-black text-xs text-indigo-600">HK$ {{ formatNumber(comp.budget) }}</div>
+                                    <div class="text-[10px] text-slate-400">{{ getCompanyContacts(comp.id).length }} 位聯絡人</div>
+                                </div>
+                            </div>
+                            <p v-if="topCompanies.length === 0" class="text-xs text-slate-400 text-center py-6">無公司數據</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- COMPANY DETAIL SLIDE-OVER DRAWER (PRIMARY DRAWER) -->
+        <div v-if="activeCompanyDrawer" class="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end" @click.self="closeCompanyDrawer">
+            <div class="bg-white w-full max-w-lg h-full shadow-2xl flex flex-col justify-between border-l border-slate-200">
+                
+                <!-- Drawer Header -->
+                <div class="p-5 bg-gradient-to-r from-slate-900 to-indigo-950 text-white flex justify-between items-start">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-xl">{{ activeCompanyDrawer.name }}</h3>
+                            <span class="px-2 py-0.5 bg-indigo-600/80 text-indigo-100 rounded-md text-xs font-semibold border border-indigo-400/40">
+                                {{ activeCompanyDrawer.industry || '未定義行業' }}
+                            </span>
+                            <span :class="getStageBadge(activeCompanyDrawer.stage).badgeClass" class="px-2 py-0.5 rounded-full text-[10px] font-bold border">
+                                {{ getStageBadge(activeCompanyDrawer.stage).label }}
+                            </span>
+                        </div>
+                        <p v-if="activeCompanyDrawer.address" class="text-xs text-slate-300 mt-1.5 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot"></i> {{ activeCompanyDrawer.address }}
+                        </p>
+                    </div>
+                    <button @click="closeCompanyDrawer" class="text-slate-300 hover:text-white p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+
+                <!-- Drawer Content Body -->
+                <div class="p-5 overflow-y-auto custom-scrollbar space-y-5 flex-1 text-xs sm:text-sm">
+                    
+                    <!-- Financials & Project Summary Card -->
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">公司專案與財務細節</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-slate-400 text-[10px] block">意向解決方案</span>
+                                <span class="font-bold text-slate-800">{{ activeCompanyDrawer.solution || '未設定' }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[10px] block">估算管道預算</span>
+                                <span class="font-bold text-indigo-600">HK$ {{ formatNumber(activeCompanyDrawer.budget) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[10px] block">已簽約金額</span>
+                                <span class="font-bold text-emerald-600">HK$ {{ formatNumber(activeCompanyDrawer.signedAmount) }}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[10px] block">預計部署日</span>
+                                <span class="font-bold text-slate-800">{{ activeCompanyDrawer.deployDate || '未定' }}</span>
+                            </div>
+                        </div>
+
+                        <div v-if="activeCompanyDrawer.projectName" class="pt-2 border-t border-slate-200">
+                            <span class="text-slate-400 text-[10px] block">已簽專案名稱</span>
+                            <span class="font-bold text-slate-800">{{ activeCompanyDrawer.projectName }}</span>
+                        </div>
+
+                        <div v-if="activeCompanyDrawer.startDate || activeCompanyDrawer.endDate" class="pt-1">
+                            <span class="text-slate-400 text-[10px] block">合約服務週期</span>
+                            <span class="text-slate-700 font-medium">{{ activeCompanyDrawer.startDate || '未定' }} 至 {{ activeCompanyDrawer.endDate || '未定' }}</span>
+                            <div v-if="activeCompanyDrawer.endDate" class="mt-1">
+                                <span :class="getRenewalBadgeInfo(activeCompanyDrawer.endDate).badgeClass" class="px-2 py-0.5 rounded text-[10px] font-bold border">
+                                    {{ getRenewalBadgeInfo(activeCompanyDrawer.endDate).label }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Associated Contacts Sub-section -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">公司聯絡人名冊 ({{ getCompanyContacts(activeCompanyDrawer.id).length }})</h4>
+                            <button @click="openContactModalForCompany(activeCompanyDrawer.id)" class="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i> 新增公司成員
+                            </button>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div v-for="c in getCompanyContacts(activeCompanyDrawer.id)" :key="c.id" class="p-3 bg-white border border-slate-200 rounded-xl space-y-2 shadow-2xs">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                                            <span>{{ c.name }}</span>
+                                            <span v-if="c.isPrimary" class="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 text-[9px] font-extrabold rounded">主要窗口</span>
+                                        </div>
+                                        <div v-if="c.jobTitle" class="text-xs text-indigo-600 font-medium mt-0.5">{{ c.jobTitle }}</div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <a v-if="c.phone" :href="'tel:' + c.phone" class="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs"><i class="fa-solid fa-phone"></i></a>
+                                        <a v-if="c.phone" :href="'https://wa.me/' + cleanPhoneForWA(c.phone)" target="_blank" class="p-1.5 bg-green-50 text-green-700 rounded-lg text-xs"><i class="fa-brands fa-whatsapp"></i></a>
+                                        <a v-if="c.email" :href="'mailto:' + c.email" class="p-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs"><i class="fa-solid fa-envelope"></i></a>
+                                    </div>
+                                </div>
+                                <div class="text-[11px] text-slate-500 flex flex-wrap gap-x-3">
+                                    <span v-if="c.phone">電話: {{ c.phone }}</span>
+                                    <span v-if="c.email">電郵: {{ c.email }}</span>
+                                </div>
+                            </div>
+                            <p v-if="getCompanyContacts(activeCompanyDrawer.id).length === 0" class="text-xs text-slate-400 italic bg-slate-50 p-3 rounded-xl border border-slate-200 text-center">
+                                尚無關聯的聯絡人資料，請點選右上角新增。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tags Section -->
+                    <div v-if="activeCompanyDrawer.tags && activeCompanyDrawer.tags.length">
+                        <h4 class="font-bold text-slate-400 text-xs uppercase mb-1.5">標籤分類</h4>
+                        <div class="flex flex-wrap gap-1.5">
+                            <span v-for="tag in activeCompanyDrawer.tags" :key="tag" class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-xs font-bold border border-indigo-100">
+                                #{{ tag }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Remark Section -->
+                    <div v-if="activeCompanyDrawer.remark">
+                        <h4 class="font-bold text-slate-400 text-xs uppercase mb-1.5">跟進備註</h4>
+                        <p class="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 text-xs text-slate-700 whitespace-pre-line leading-relaxed">
+                            {{ activeCompanyDrawer.remark }}
+                        </p>
+                    </div>
+
+                    <!-- Follow-up History Timeline Preview -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="font-bold text-slate-400 text-xs uppercase">近期跟進歷史紀錄</h4>
+                            <button @click="openLogModal(activeCompanyDrawer)" class="text-xs text-indigo-600 font-bold hover:underline">+ 新增紀錄</button>
+                        </div>
+                        <div class="space-y-2">
+                            <div v-for="log in getCompanyLogs(activeCompanyDrawer.id)" :key="log.id" class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                    <span class="font-bold text-slate-700">{{ log.type }}</span>
+                                    <span>{{ log.date }}</span>
+                                </div>
+                                <p class="text-slate-600">{{ log.note }}</p>
+                            </div>
+                            <p v-if="getCompanyLogs(activeCompanyDrawer.id).length === 0" class="text-xs text-slate-400 italic">無跟進歷史紀錄</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Drawer Footer -->
+                <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-between">
+                    <button @click="openCompanyModal(activeCompanyDrawer); closeCompanyDrawer()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold text-xs hover:bg-indigo-700 transition shadow-xs">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> 編輯公司資料
+                    </button>
+                    <button @click="closeCompanyDrawer" class="px-4 py-2 border border-slate-300 rounded-xl font-bold text-xs hover:bg-slate-100 transition">
+                        關閉
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL 1: ADD/EDIT COMPANY (PRIMARY ENTITY) -->
+        <div v-if="showCompanyModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
+                <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-building text-indigo-400"></i> {{ isEditCompany ? '編輯公司資料' : '新增客戶公司' }}
+                    </h3>
+                    <button @click="showCompanyModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <form @submit.prevent="saveCompany" class="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Company Name -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">公司名稱 *</label>
+                            <input v-model="companyForm.name" required type="text" placeholder="例如: 創科系統有限公司" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Industry -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">所屬行業</label>
+                            <input v-model="companyForm.industry" type="text" placeholder="例如: 資訊科技 / 零售製造" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Company Address -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">公司地址</label>
+                            <input v-model="companyForm.address" type="text" placeholder="例如: 香港九龍觀塘偉業街 100 號" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Pipeline Stage Select -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">銷售管道階段</label>
+                            <select v-model="companyForm.stage" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option v-for="stg in stageOptions" :key="stg.value" :value="stg.value">{{ stg.label }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Interest Solution Select + Manage Button -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-600">意向解決方案</label>
+                                <button type="button" @click="showSolutionModal = true" class="text-[11px] text-indigo-600 font-bold hover:underline flex items-center gap-1">
+                                    <i class="fa-solid fa-gear text-[10px]"></i> 管理選項
+                                </button>
+                            </div>
+                            <select v-model="companyForm.solution" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <option value="">-- 請選擇 --</option>
+                                <option v-for="sol in solutionOptions" :key="sol" :value="sol">{{ sol }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Est Budget -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">預算金額 (HKD)</label>
+                            <input v-model.number="companyForm.budget" type="number" step="1000" placeholder="例如: 150000" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Signed Amount -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">已簽約金額 (HKD)</label>
+                            <input v-model.number="companyForm.signedAmount" type="number" step="1000" placeholder="例如: 120000" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Signed Project Name -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">已簽專案名稱 (Project Name)</label>
+                            <input v-model="companyForm.projectName" type="text" placeholder="例如: ERP 第一期系統建置" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Project Start Date -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">項目服務開始日期</label>
+                            <input v-model="companyForm.startDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Project End Date -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">合約到期日 (續約提醒)</label>
+                            <input v-model="companyForm.endDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Est Deployment Date -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">預計部署上線日期</label>
+                            <input v-model="companyForm.deployDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Follow Up Date -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">跟進日期提醒</label>
+                            <input v-model="companyForm.followUpDate" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <!-- Tags Selection Input -->
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">標籤 (逗號分隔)</label>
+                            <input v-model="companyForm.tagsInput" type="text" placeholder="例如: VIP, 展會, 續約優先" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Free Text Remark -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">公司與專案備註 (Remark)</label>
+                        <textarea v-model="companyForm.remark" rows="3" placeholder="例如：客戶想要先試用 Demo，預計下週二確認需求的細節..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                        <button @click="showCompanyModal = false" type="button" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">取消</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-sm">儲存公司資料</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL 2: ADD/EDIT CONTACT (SUB-ENTITY) -->
+        <div v-if="showContactModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 bg-indigo-700 text-white flex justify-between items-center">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> {{ isEditContact ? '編輯聯絡人' : '新增公司聯絡人' }}
+                    </h3>
+                    <button @click="showContactModal = false" class="text-indigo-200 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <form @submit.prevent="saveContact" class="p-6 space-y-4">
+                    <!-- Company Select -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">所屬公司 *</label>
+                        <select v-model="contactForm.companyId" required class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="" disabled>-- 請選擇歸屬公司 --</option>
+                            <option v-for="comp in companies" :key="comp.id" :value="comp.id">{{ comp.name }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Contact Name -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">聯絡人姓名 *</label>
+                        <input v-model="contactForm.name" required type="text" placeholder="例如: 陳大文 (David)" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Job Title -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">職位 / 稱謂 (Job Title)</label>
+                        <input v-model="contactForm.jobTitle" type="text" placeholder="例如: 資訊科技總監 (CTO) / 採購經理" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">電話號碼</label>
+                        <input v-model="contactForm.phone" type="text" placeholder="+852 9123 4567" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">電郵地址</label>
+                        <input v-model="contactForm.email" type="email" placeholder="david@company.com" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <!-- Is Primary Contact Toggle -->
+                    <div class="flex items-center gap-2 pt-1">
+                        <input v-model="contactForm.isPrimary" type="checkbox" id="isPrimaryCheck" class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500">
+                        <label for="isPrimaryCheck" class="text-xs font-bold text-slate-700 cursor-pointer">設為該公司之主要對接窗口 (Primary Contact)</label>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                        <button @click="showContactModal = false" type="button" class="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50">取消</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs">儲存聯絡人</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL 3: MANAGE SOLUTIONS OPTIONS -->
+        <div v-if="showSolutionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 bg-indigo-700 text-white flex justify-between items-center">
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-200"></i> 管理解決方案選項
+                    </h3>
+                    <button @click="showSolutionModal = false" class="text-indigo-200 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <form @submit.prevent="addSolutionOption" class="flex gap-2">
+                        <input v-model="newSolutionInput" type="text" placeholder="輸入新選項 (如: AI 自動化)" required class="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 whitespace-nowrap shadow-xs">
+                            <i class="fa-solid fa-plus"></i> 新增
+                        </button>
+                    </form>
+
+                    <div class="border-t border-slate-100 pt-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">現有選項清單 ({{ solutionOptions.length }})</label>
+                        </div>
+                        <div class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                            <div v-for="(sol, idx) in solutionOptions" :key="sol" class="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs hover:border-indigo-300 transition">
+                                <span class="font-semibold text-slate-800">{{ sol }}</span>
+                                <button @click="removeSolutionOption(sol, idx)" type="button" class="p-1 text-slate-400 hover:text-rose-600 transition" title="刪除此選項">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex justify-end">
+                        <button @click="showSolutionModal = false" type="button" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-200 transition">完成</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL 4: ACTIVITY LOG MODAL (COMPANY-CENTRIC) -->
+        <div v-if="showLogModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden my-8">
+                <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">公司跟進紀錄 (Activity Log)</h3>
+                        <p class="text-xs text-indigo-200"><i class="fa-solid fa-building mr-1"></i>{{ selectedCompanyForLog?.name }}</p>
+                    </div>
+                    <button @click="showLogModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                    <form @submit.prevent="addActivityLog" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">活動類型</label>
+                                <select v-model="newLog.type" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white">
+                                    <option value="會議">實體/線上會議</option>
+                                    <option value="電話">電話溝通</option>
+                                    <option value="電郵">電郵聯絡</option>
+                                    <option value="簡報提案">簡報提案 (Pitch)</option>
+                                    <option value="備註">一般紀錄</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">紀錄日期</label>
+                                <input v-model="newLog.date" type="date" class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">內容摘要</label>
+                            <textarea v-model="newLog.note" required rows="2" placeholder="輸入這次跟進該公司的詳細討論內容..." class="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition shadow-xs">新增跟進紀錄</button>
+                        </div>
+                    </form>
+
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-xs uppercase text-slate-400 tracking-wider">公司歷史紀錄時間軸</h4>
+                        <div v-if="companyLogs.length > 0" class="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                            <div v-for="log in companyLogs" :key="log.id" class="relative group">
+                                <div class="absolute -left-6 top-1 w-5 h-5 rounded-full bg-indigo-100 border-2 border-indigo-600 flex items-center justify-center text-[10px] text-indigo-600">
+                                    <i v-if="log.type === '電話'" class="fa-solid fa-phone"></i>
+                                    <i v-else-if="log.type === '電郵'" class="fa-solid fa-envelope"></i>
+                                    <i v-else-if="log.type === '會議'" class="fa-solid fa-handshake"></i>
+                                    <i v-else class="fa-solid fa-note-sticky"></i>
+                                </div>
+                                <div class="bg-white border border-slate-200 rounded-xl p-3 text-xs shadow-2xs">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-slate-800">{{ log.type }}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-slate-400 text-[10px]">{{ log.date }}</span>
+                                            <button @click="deleteLog(log.id)" class="text-slate-300 hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                    <p class="text-slate-600 whitespace-pre-line leading-relaxed">{{ log.note }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <p v-else class="text-xs text-slate-400 text-center py-4">該公司暫無跟進紀錄</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL 5: DATA BACKUP / IMPORT & EXPORT -->
+        <div v-if="showBackupModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                    <h3 class="font-bold text-lg">系統資料備份與管理</h3>
+                    <button @click="showBackupModal = false" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        本系統資料存放於瀏覽器 LocalStorage 中。建議定期匯出 JSON 備份檔，防止清空瀏覽器紀錄造成遺失。
+                    </p>
+
+                    <div class="space-y-2">
+                        <button @click="exportDataJSON" class="w-full py-2.5 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-indigo-200 transition">
+                            <i class="fa-solid fa-download"></i> 匯出完整 JSON 備份檔
+                        </button>
+                        <button @click="exportCompaniesCSV" class="w-full py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-emerald-200 transition">
+                            <i class="fa-solid fa-file-csv"></i> 匯出公司客戶清單 (CSV 格式)
+                        </button>
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-4">
+                        <label class="block text-xs font-semibold text-slate-600 mb-2">匯入 JSON 備份檔</label>
+                        <input @change="importDataJSON" type="file" accept=".json" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    </div>
+
+                    <div class="border-t border-slate-100 pt-4">
+                        <button @click="promptResetDemo" class="w-full py-2 px-4 text-rose-600 hover:bg-rose-50 font-bold rounded-xl text-xs transition border border-rose-100">
+                            載入預設示範資料 (覆蓋現有)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOM CONFIRMATION DIALOG -->
+        <div v-if="confirmDialog.show" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+                <div class="flex items-center gap-3 text-rose-600">
+                    <div class="p-2.5 bg-rose-100 rounded-xl">
+                        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-base text-slate-900">{{ confirmDialog.title }}</h3>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">{{ confirmDialog.message }}</p>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button @click="confirmDialog.show = false" class="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        取消
+                    </button>
+                    <button @click="executeConfirmAction" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition shadow-xs">
+                        確定執行
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Notification Toast -->
+        <div v-if="toastMessage" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm z-50 flex items-center gap-2.5 border border-slate-700 animate-bounce">
+            <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+            <span class="font-medium">{{ toastMessage }}</span>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const todayObj = new Date();
+                const in15Days = new Date(todayObj.getTime() + 15 * 86400000).toISOString().split('T')[0];
+                const past30Days = new Date(todayObj.getTime() - 10 * 86400000).toISOString().split('T')[0];
+
+                // Default Companies (PRIMARY ENTITY)
+                const defaultCompanies = [
+                    {
+                        id: 'c1',
+                        name: '創科系統有限公司',
+                        industry: '資訊科技',
+                        address: '香港九龍觀塘偉業街 100 號',
+                        stage: 'proposal',
+                        solution: 'ERP 系統',
+                        budget: 150000,
+                        signedAmount: 120000,
+                        projectName: 'ERP 第一期系統建置',
+                        startDate: '2025-10-01',
+                        endDate: in15Days,
+                        deployDate: '2025-10-15',
+                        followUpDate: new Date().toISOString().split('T')[0],
+                        remark: '合約即將到期，需準備第二期續約合約草稿與服務檢討簡報。',
+                        tags: ['重點客戶', '續約優先'],
+                        updatedAt: Date.now()
+                    },
+                    {
+                        id: 'c2',
+                        name: '遠東貿易行有限公司',
+                        industry: '進出口貿易',
+                        address: '香港中環德輔道中 88 號',
+                        stage: 'closed_won',
+                        solution: 'CRM 客戶管理',
+                        budget: 60000,
+                        signedAmount: 50000,
+                        projectName: 'CRM 訂閱服務 (年度)',
+                        startDate: '2024-08-01',
+                        endDate: past30Days,
+                        deployDate: '2024-08-15',
+                        followUpDate: new Date().toISOString().split('T')[0],
+                        remark: '合約已過期，客戶要求提供續約八折優惠續期。',
+                        tags: ['VIP'],
+                        updatedAt: Date.now() - 86400000
+                    }
+                ];
+
+                // Default Contacts (SUB-ENTITY belonging to Company)
+                const defaultContacts = [
+                    {
+                        id: 'ct1',
+                        companyId: 'c1',
+                        name: '陳大文 (David)',
+                        jobTitle: '資訊科技總監 (CTO)',
+                        phone: '+852 9123 4567',
+                        email: 'david.chan@techcorp.com.hk',
+                        isPrimary: true
+                    },
+                    {
+                        id: 'ct2',
+                        companyId: 'c1',
+                        name: '王小姐 (Mary)',
+                        jobTitle: 'IT 專案經理',
+                        phone: '+852 9876 5432',
+                        email: 'mary.wong@techcorp.com.hk',
+                        isPrimary: false
+                    },
+                    {
+                        id: 'ct3',
+                        companyId: 'c2',
+                        name: '李小姐 (Sarah)',
+                        jobTitle: '採購經理',
+                        phone: '+852 6888 9999',
+                        email: 'sarah.lee@fareast.com',
+                        isPrimary: true
+                    }
+                ];
+
+                const defaultLogs = [
+                    { id: 'l1', companyId: 'c1', type: '會議', date: '2026-08-10', note: '與 CTO 陳大文開會，確認系統需求主要集中在 ERP 和 HR 管理。' }
+                ];
+
+                const defaultSolutions = ['ERP 系統', 'CRM 客戶管理', 'HR 人力資源', 'POS 零售系統', 'Custom Web App'];
+
+                const stageOptions = [
+                    { value: 'lead', label: '1. 潛在 Lead', icon: 'fa-solid fa-lightbulb', badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' },
+                    { value: 'in_progress', label: '2. 洽談中', icon: 'fa-solid fa-comments', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
+                    { value: 'proposal', label: '3. 報價提案', icon: 'fa-solid fa-file-invoice-dollar', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200' },
+                    { value: 'closed_won', label: '4. 已簽約成交', icon: 'fa-solid fa-circle-check', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                    { value: 'closed_lost', label: '5. 已流失/歸檔', icon: 'fa-solid fa-circle-xmark', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' }
+                ];
+
+                // Reactive State
+                const currentTab = ref('companies');
+                const companies = ref([]);
+                const contacts = ref([]);
+                const logs = ref([]);
+                const solutionOptions = ref([]);
+
+                // Solution Management State
+                const showSolutionModal = ref(false);
+                const newSolutionInput = ref('');
+
+                // Drawer State (Company Drawer)
+                const activeCompanyDrawer = ref(null);
+
+                // Filters
+                const searchQuery = ref('');
+                const filterSolution = ref('');
+                const filterStage = ref('');
+                const filterRenewal = ref('');
+                const sortBy = ref('updated');
+
+                // Modal Control States
+                const showCompanyModal = ref(false);
+                const isEditCompany = ref(false);
+                const companyForm = ref({});
+
+                const showContactModal = ref(false);
+                const isEditContact = ref(false);
+                const contactForm = ref({});
+
+                const showLogModal = ref(false);
+                const selectedCompanyForLog = ref(null);
+                const newLog = ref({ type: '會議', date: new Date().toISOString().split('T')[0], note: '' });
+
+                const showBackupModal = ref(false);
+                const toastMessage = ref('');
+
+                // Confirmation Dialog State
+                const confirmDialog = ref({ show: false, title: '', message: '', action: null });
+
+                // Load Data
+                onMounted(() => {
+                    const savedCompanies = localStorage.getItem('b2b_crm_companies');
+                    const savedContacts = localStorage.getItem('b2b_crm_contacts');
+                    const savedLogs = localStorage.getItem('b2b_crm_logs');
+                    const savedSolutions = localStorage.getItem('b2b_crm_solutions');
+
+                    companies.value = savedCompanies ? JSON.parse(savedCompanies) : defaultCompanies;
+                    contacts.value = savedContacts ? JSON.parse(savedContacts) : defaultContacts;
+                    logs.value = savedLogs ? JSON.parse(savedLogs) : defaultLogs;
+                    solutionOptions.value = savedSolutions ? JSON.parse(savedSolutions) : defaultSolutions;
+                });
+
+                // Watch Auto-save
+                watch([companies, contacts, logs, solutionOptions], () => {
+                    localStorage.setItem('b2b_crm_companies', JSON.stringify(companies.value));
+                    localStorage.setItem('b2b_crm_contacts', JSON.stringify(contacts.value));
+                    localStorage.setItem('b2b_crm_logs', JSON.stringify(logs.value));
+                    localStorage.setItem('b2b_crm_solutions', JSON.stringify(solutionOptions.value));
+                }, { deep: true });
+
+                const getDaysUntilEnd = (endDateStr) => {
+                    if (!endDateStr) return null;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const end = new Date(endDateStr);
+                    end.setHours(0, 0, 0, 0);
+                    const diffTime = end - today;
+                    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                };
+
+                const getRenewalBadgeInfo = (endDateStr) => {
+                    const days = getDaysUntilEnd(endDateStr);
+                    if (days === null) return { label: '', badgeClass: 'hidden', icon: '' };
+
+                    if (days < 0) {
+                        return {
+                            label: `已到期 (${Math.abs(days)} 天)`,
+                            badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold',
+                            icon: 'fa-solid fa-circle-exclamation'
+                        };
+                    } else if (days <= 30) {
+                        return {
+                            label: `剩餘 ${days} 天到期`,
+                            badgeClass: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+                            icon: 'fa-solid fa-clock'
+                        };
+                    } else if (days <= 60) {
+                        return {
+                            label: `剩餘 ${days} 天到期`,
+                            badgeClass: 'bg-blue-50 text-blue-800 border-blue-200',
+                            icon: 'fa-solid fa-calendar-day'
+                        };
+                    } else {
+                        return {
+                            label: `履約中 (${days} 天)`,
+                            badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                            icon: 'fa-solid fa-shield-halved'
+                        };
+                    }
+                };
+
+                const getStageBadge = (stageVal) => {
+                    const found = stageOptions.find(s => s.value === stageVal);
+                    return found || { label: '未定義', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200', icon: 'fa-solid fa-question' };
+                };
+
+                const totalBudget = computed(() => {
+                    return companies.value.reduce((sum, c) => sum + (Number(c.budget) || 0), 0);
+                });
+
+                const pendingFollowUpsCount = computed(() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    return companies.value.filter(c => c.followUpDate && c.followUpDate <= today).length;
+                });
+
+                const expiringCount30 = computed(() => {
+                    return companies.value.filter(c => {
+                        const days = getDaysUntilEnd(c.endDate);
+                        return days !== null && days <= 30;
+                    }).length;
+                });
+
+                const topCompanies = computed(() => {
+                    return [...companies.value]
+                        .sort((a, b) => (b.budget || 0) - (a.budget || 0))
+                        .slice(0, 5);
+                });
+
+                const getPrimaryContact = (companyId) => {
+                    const compContacts = contacts.value.filter(c => c.companyId === companyId);
+                    return compContacts.find(c => c.isPrimary) || compContacts[0] || null;
+                };
+
+                const getCompanyContacts = (companyId) => contacts.value.filter(c => c.companyId === companyId);
+
+                const filteredCompanies = computed(() => {
+                    return companies.value.filter(comp => {
+                        const primaryC = getPrimaryContact(comp.id);
+                        const primaryName = primaryC ? primaryC.name.toLowerCase() : '';
+                        const primaryPhone = primaryC ? primaryC.phone || '' : '';
+                        const primaryEmail = primaryC ? (primaryC.email || '').toLowerCase() : '';
+                        const tagsStr = (comp.tags || []).join(' ').toLowerCase();
+
+                        const matchesSearch = !searchQuery.value || 
+                            comp.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                            (comp.industry && comp.industry.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+                            primaryName.includes(searchQuery.value.toLowerCase()) ||
+                            primaryPhone.includes(searchQuery.value) ||
+                            primaryEmail.includes(searchQuery.value.toLowerCase()) ||
+                            (comp.projectName && comp.projectName.toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+                            tagsStr.includes(searchQuery.value.toLowerCase());
+
+                        const matchesSolution = !filterSolution.value || comp.solution === filterSolution.value;
+                        const matchesStage = !filterStage.value || comp.stage === filterStage.value;
+
+                        let matchesRenewal = true;
+                        if (filterRenewal.value) {
+                            const days = getDaysUntilEnd(comp.endDate);
+                            if (filterRenewal.value === 'expiring30') matchesRenewal = days !== null && days <= 30;
+                            else if (filterRenewal.value === 'expiring60') matchesRenewal = days !== null && days <= 60 && days >= 0;
+                            else if (filterRenewal.value === 'expired') matchesRenewal = days !== null && days < 0;
+                            else if (filterRenewal.value === 'active') matchesRenewal = days !== null && days > 60;
+                        }
+
+                        return matchesSearch && matchesSolution && matchesStage && matchesRenewal;
+                    }).sort((a, b) => {
+                        if (sortBy.value === 'budgetHigh') return (b.budget || 0) - (a.budget || 0);
+                        if (sortBy.value === 'budgetLow') return (a.budget || 0) - (b.budget || 0);
+                        if (sortBy.value === 'followUpDate') return (a.followUpDate || '9999') > (b.followUpDate || '9999') ? 1 : -1;
+                        if (sortBy.value === 'endDateSoon') return (a.endDate || '9999') > (b.endDate || '9999') ? 1 : -1;
+                        return (b.updatedAt || 0) - (a.updatedAt || 0);
+                    });
+                });
+
+                const scheduledCompanies = computed(() => {
+                    return companies.value
+                        .filter(c => c.followUpDate)
+                        .sort((a, b) => (a.followUpDate || '').localeCompare(b.followUpDate || ''));
+                });
+
+                const companyLogs = computed(() => {
+                    if (!selectedCompanyForLog.value) return [];
+                    return logs.value.filter(l => l.companyId === selectedCompanyForLog.value.id);
+                });
+
+                const getCompaniesByStage = (stageVal) => {
+                    return companies.value.filter(c => (c.stage || 'lead') === stageVal);
+                };
+
+                const getStageBudget = (stageVal) => {
+                    return getCompaniesByStage(stageVal).reduce((sum, c) => sum + (Number(c.budget) || 0), 0);
+                };
+
+                const getStagePercentage = (stageVal) => {
+                    if (totalBudget.value === 0) return 0;
+                    return Math.round((getStageBudget(stageVal) / totalBudget.value) * 100);
+                };
+
+                const quickMoveCompanyStage = (company, newStage) => {
+                    company.stage = newStage;
+                    company.updatedAt = Date.now();
+                    showToast(`已將「${company.name}」移至新銷售階段`);
+                };
+
+                const quickPostponeCompanyFollowUp = (company) => {
+                    const current = new Date(company.followUpDate || Date.now());
+                    current.setDate(current.getDate() + 3);
+                    company.followUpDate = current.toISOString().split('T')[0];
+                    showToast(`已將「${company.name}」跟進日期延後 3 天`);
+                };
+
+                const openCompanyDrawer = (company) => { activeCompanyDrawer.value = company; };
+                const openCompanyDrawerById = (companyId) => {
+                    const comp = companies.value.find(c => c.id === companyId);
+                    if (comp) activeCompanyDrawer.value = comp;
+                };
+                const closeCompanyDrawer = () => { activeCompanyDrawer.value = null; };
+                const cleanPhoneForWA = (phone) => phone ? phone.replace(/[^0-9]/g, '') : '';
+                const getCompanyLogs = (companyId) => logs.value.filter(l => l.companyId === companyId);
+
+                const quickRenewalFilter = (val) => {
+                    currentTab.value = 'companies';
+                    filterRenewal.value = val;
+                    sortBy.value = 'endDateSoon';
+                };
+
+                const clearFilters = () => {
+                    searchQuery.value = '';
+                    filterSolution.value = '';
+                    filterStage.value = '';
+                    filterRenewal.value = '';
+                };
+
+                const showAllCompaniesTab = () => {
+                    currentTab.value = 'companies';
+                    clearFilters();
+                };
+
+                const formatNumber = (num) => num ? Number(num).toLocaleString() : '0';
+
+                const getCompanyName = (companyId) => {
+                    const comp = companies.value.find(c => c.id === companyId);
+                    return comp ? comp.name : '獨立 / 未歸類';
+                };
+
+                const isFollowUpUrgent = (dateStr) => {
+                    if (!dateStr) return false;
+                    const today = new Date().toISOString().split('T')[0];
+                    return dateStr <= today;
+                };
+
+                const showToast = (msg) => {
+                    toastMessage.value = msg;
+                    setTimeout(() => { toastMessage.value = ''; }, 3000);
+                };
+
+                // Company Actions (Primary Entity)
+                const openCompanyModal = (company = null) => {
+                    if (company) {
+                        isEditCompany.value = true;
+                        const c = JSON.parse(JSON.stringify(company));
+                        c.tagsInput = (c.tags || []).join(', ');
+                        companyForm.value = c;
+                    } else {
+                        isEditCompany.value = false;
+                        companyForm.value = {
+                            id: 'c_' + Date.now(),
+                            name: '',
+                            industry: '',
+                            address: '',
+                            stage: 'lead',
+                            solution: '',
+                            budget: null,
+                            signedAmount: null,
+                            projectName: '',
+                            startDate: '',
+                            endDate: '',
+                            deployDate: '',
+                            followUpDate: '',
+                            remark: '',
+                            tagsInput: '',
+                            updatedAt: Date.now()
+                        };
+                    }
+                    showCompanyModal.value = true;
+                };
+
+                const saveCompany = () => {
+                    companyForm.value.updatedAt = Date.now();
+                    if (companyForm.value.tagsInput) {
+                        companyForm.value.tags = companyForm.value.tagsInput
+                            .split(',')
+                            .map(t => t.trim())
+                            .filter(t => t.length > 0);
+                    } else {
+                        companyForm.value.tags = [];
+                    }
+
+                    if (isEditCompany.value) {
+                        const idx = companies.value.findIndex(c => c.id === companyForm.value.id);
+                        if (idx !== -1) companies.value[idx] = { ...companyForm.value };
+                    } else {
+                        companies.value.unshift({ ...companyForm.value });
+                    }
+                    showCompanyModal.value = false;
+                    showToast(isEditCompany.value ? '公司資料已更新' : '已新增客戶公司');
+                };
+
+                const confirmDeleteCompany = (company) => {
+                    confirmDialog.value = {
+                        show: true,
+                        title: '刪除公司',
+                        message: `確定要刪除「${company.name}」嗎？此操作將連同其所有聯絡人與歷史跟進紀錄一併移除，無法恢復。`,
+                        action: () => {
+                            companies.value = companies.value.filter(c => c.id !== company.id);
+                            contacts.value = contacts.value.filter(c => c.companyId !== company.id);
+                            logs.value = logs.value.filter(l => l.companyId !== company.id);
+                            if (activeCompanyDrawer.value?.id === company.id) closeCompanyDrawer();
+                            showToast('已成功刪除該公司');
+                        }
+                    };
+                };
+
+                // Contact Actions (Sub Entity)
+                const openContactModal = (contact = null) => {
+                    if (contact) {
+                        isEditContact.value = true;
+                        contactForm.value = JSON.parse(JSON.stringify(contact));
+                    } else {
+                        isEditContact.value = false;
+                        contactForm.value = {
+                            id: 'ct_' + Date.now(),
+                            companyId: companies.value.length > 0 ? companies.value[0].id : '',
+                            name: '',
+                            jobTitle: '',
+                            phone: '',
+                            email: '',
+                            isPrimary: false
+                        };
+                    }
+                    showContactModal.value = true;
+                };
+
+                const openContactModalForCompany = (companyId) => {
+                    isEditContact.value = false;
+                    const existingContacts = getCompanyContacts(companyId);
+                    contactForm.value = {
+                        id: 'ct_' + Date.now(),
+                        companyId: companyId,
+                        name: '',
+                        jobTitle: '',
+                        phone: '',
+                        email: '',
+                        isPrimary: existingContacts.length === 0 // automatically primary if first
+                    };
+                    showContactModal.value = true;
+                };
+
+                const saveContact = () => {
+                    // Handle primary contact status logic
+                    if (contactForm.value.isPrimary) {
+                        contacts.value.forEach(c => {
+                            if (c.companyId === contactForm.value.companyId && c.id !== contactForm.value.id) {
+                                c.isPrimary = false;
+                            }
+                        });
+                    }
+
+                    if (isEditContact.value) {
+                        const idx = contacts.value.findIndex(c => c.id === contactForm.value.id);
+                        if (idx !== -1) contacts.value[idx] = { ...contactForm.value };
+                    } else {
+                        contacts.value.unshift({ ...contactForm.value });
+                    }
+                    showContactModal.value = false;
+                    showToast(isEditContact.value ? '聯絡人資料已更新' : '已新增聯絡人');
+                };
+
+                const confirmDeleteContact = (contact) => {
+                    confirmDialog.value = {
+                        show: true,
+                        title: '刪除聯絡人',
+                        message: `確定要刪除「${contact.name}」嗎？`,
+                        action: () => {
+                            contacts.value = contacts.value.filter(c => c.id !== contact.id);
+                            showToast('已成功刪除聯絡人');
+                        }
+                    };
+                };
+
+                // Log Actions
+                const openLogModal = (company) => {
+                    selectedCompanyForLog.value = company;
+                    newLog.value = { type: '會議', date: new Date().toISOString().split('T')[0], note: '' };
+                    showLogModal.value = true;
+                };
+
+                const addActivityLog = () => {
+                    if (!newLog.value.note) return;
+                    logs.value.unshift({
+                        id: 'l_' + Date.now(),
+                        companyId: selectedCompanyForLog.value.id,
+                        type: newLog.value.type,
+                        date: newLog.value.date,
+                        note: newLog.value.note
+                    });
+                    newLog.value.note = '';
+                    showToast('已新增公司跟進紀錄');
+                };
+
+                const deleteLog = (logId) => {
+                    logs.value = logs.value.filter(l => l.id !== logId);
+                    showToast('已刪除紀錄');
+                };
+
+                // Solution Management
+                const addSolutionOption = () => {
+                    const trimmed = newSolutionInput.value.trim();
+                    if (!trimmed) return;
+                    if (solutionOptions.value.includes(trimmed)) {
+                        showToast('此解決方案選項已存在');
+                        return;
+                    }
+                    solutionOptions.value.push(trimmed);
+                    newSolutionInput.value = '';
+                    showToast('已成功新增解決方案選項');
+                };
+
+                const removeSolutionOption = (sol, idx) => {
+                    confirmDialog.value = {
+                        show: true,
+                        title: '刪除解決方案選項',
+                        message: `確定要刪除「${sol}」嗎？`,
+                        action: () => {
+                            solutionOptions.value.splice(idx, 1);
+                            showToast('已刪除選項');
+                        }
+                    };
+                };
+
+                // Backup & Export Actions
+                const openBackupModal = () => { showBackupModal.value = true; };
+
+                const exportDataJSON = () => {
+                    const data = {
+                        companies: companies.value,
+                        contacts: contacts.value,
+                        logs: logs.value,
+                        solutions: solutionOptions.value,
+                        exportDate: new Date().toISOString()
+                    };
+                    const jsonStr = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `B2B_CRM_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('JSON 備份檔匯出成功');
+                };
+
+                const exportCompaniesCSV = () => {
+                    let csv = '\uFEFF公司名稱,行業,主要聯絡人,電話,電郵,階段,解決方案,預算金額,已簽金額,專案名稱,合約到期日,跟進日期,備註\n';
+                    companies.value.forEach(c => {
+                        const primaryC = getPrimaryContact(c.id);
+                        const primaryName = primaryC ? primaryC.name : '';
+                        const primaryPhone = primaryC ? primaryC.phone : '';
+                        const primaryEmail = primaryC ? primaryC.email : '';
+                        const stageLabel = getStageBadge(c.stage).label;
+
+                        csv += `"${c.name || ''}","${c.industry || ''}","${primaryName}","${primaryPhone}","${primaryEmail}","${stageLabel}","${c.solution || ''}","${c.budget || 0}","${c.signedAmount || 0}","${c.projectName || ''}","${c.endDate || ''}","${c.followUpDate || ''}","${(c.remark || '').replace(/"/g, '""')}"\n`;
+                    });
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `B2B_Companies_${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('公司 CSV 匯出成功');
+                };
+
+                const importDataJSON = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const parsed = JSON.parse(event.target.result);
+                            if (parsed.companies && parsed.contacts) {
+                                companies.value = parsed.companies || [];
+                                contacts.value = parsed.contacts || [];
+                                logs.value = parsed.logs || [];
+                                solutionOptions.value = parsed.solutions || defaultSolutions;
+                                showBackupModal.value = false;
+                                showToast('資料已順利匯入並更新！');
+                            } else {
+                                alert('備份檔格式不正確！');
+                            }
+                        } catch (err) {
+                            alert('JSON 解析失敗，請確認檔案內容格式！');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                const promptResetDemo = () => {
+                    confirmDialog.value = {
+                        show: true,
+                        title: '載入預設資料',
+                        message: '確定要覆蓋現有資料並恢復為預設 B2B 公司示範資料嗎？',
+                        action: () => {
+                            companies.value = defaultCompanies;
+                            contacts.value = defaultContacts;
+                            logs.value = defaultLogs;
+                            solutionOptions.value = defaultSolutions;
+                            showBackupModal.value = false;
+                            showToast('已恢復為預設示範資料');
+                        }
+                    };
+                };
+
+                const executeConfirmAction = () => {
+                    if (confirmDialog.value.action) {
+                        confirmDialog.value.action();
+                    }
+                    confirmDialog.value.show = false;
+                };
+
+                return {
+                    currentTab,
+                    companies,
+                    contacts,
+                    logs,
+                    solutionOptions,
+                    showSolutionModal,
+                    newSolutionInput,
+                    addSolutionOption,
+                    removeSolutionOption,
+                    activeCompanyDrawer,
+                    openCompanyDrawer,
+                    openCompanyDrawerById,
+                    closeCompanyDrawer,
+                    searchQuery,
+                    filterSolution,
+                    filterStage,
+                    filterRenewal,
+                    sortBy,
+                    filteredCompanies,
+                    scheduledCompanies,
+                    pendingFollowUpsCount,
+                    expiringCount30,
+                    topCompanies,
+                    totalBudget,
+                    stageOptions,
+                    getStageBadge,
+                    getRenewalBadgeInfo,
+                    getCompanyName,
+                    getPrimaryContact,
+                    getCompanyContacts,
+                    getCompaniesByStage,
+                    getStageBudget,
+                    getStagePercentage,
+                    quickMoveCompanyStage,
+                    quickPostponeCompanyFollowUp,
+                    quickRenewalFilter,
+                    clearFilters,
+                    showAllCompaniesTab,
+                    formatNumber,
+                    cleanPhoneForWA,
+                    getCompanyLogs,
+                    isFollowUpUrgent,
+                    showCompanyModal,
+                    isEditCompany,
+                    companyForm,
+                    openCompanyModal,
+                    saveCompany,
+                    confirmDeleteCompany,
+                    showContactModal,
+                    isEditContact,
+                    contactForm,
+                    openContactModal,
+                    openContactModalForCompany,
+                    saveContact,
+                    confirmDeleteContact,
+                    showLogModal,
+                    selectedCompanyForLog,
+                    newLog,
+                    companyLogs,
+                    openLogModal,
+                    addActivityLog,
+                    deleteLog,
+                    showBackupModal,
+                    openBackupModal,
+                    exportDataJSON,
+                    exportCompaniesCSV,
+                    importDataJSON,
+                    promptResetDemo,
+                    toastMessage,
+                    confirmDialog,
+                    executeConfirmAction
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
